@@ -19,11 +19,12 @@ const globalMiddleware = (app) => {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      httpOnly: true,
-      maxAge: 1000*60*60*24*7, // max 7 day,
-      sameSite: 'lax',
-      secure: false
-    }
+  httpOnly: true,
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure: process.env.NODE_ENV === "production"
+}
+
   }));
 
   app.use(passport.initialize());
