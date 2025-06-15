@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { useQuery } from 'react-query';
-
+import Upvote from "../assets/Upvote.svg";
 function UserAnswer({ answerId }) {
     const navigate  = useNavigate();
     // Use react-query to fetch answer details and cache them
@@ -36,7 +36,7 @@ function UserAnswer({ answerId }) {
                 <div className="upvotes flex justify-center items-center gap-1">
                     <div className="text-xs text-gray-400">{isLoading ? '...' : upvotes}</div>
                     <div>
-                        <img src="/src/assets/Upvote.svg" alt="Upvotes" className="invert-100 w-3" />
+                        <img src={Upvote} alt="Upvotes" className="invert-100 w-3" />
                     </div>
                 </div>
             </div>
