@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech&display=swap');
+@import "tailwindcss";
+
+
+    
+    * {
+        box-sizing: border-box; 
+        /* overflow-x: hidden; */
+    }
+    
+    
+
+
+    body {
+        font-family: Arial, sans-serif;
+        line-height: 1.4;
+        color: #fff; 
+        background-color: #000; 
+    }
+
+    body {
+        overflow-y: auto; /* Confirm scrolling is enabled */
+      }
+   /* WebKit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 12px;
+    background-color: #0c0d23;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #222; /* dark track background */
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: #000; /* black thumb */
+    border-radius: 6px;
+    border: 3px solid #222; /* match track background for seamless look */
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #555; /* lighter on hover for better UX */
+  }
+  
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #000 #222; /* thumb and track colors */
+  }
+
+  /* Flash wave animation for loading state in SinglePost */
+
+@keyframes flash-wave {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.2;
+  }
+}
+
+.animate-flash-wave-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent 0%, #60a5fa33 50%, transparent 100%);
+  animation: flash-wave 1.2s cubic-bezier(0.4,0,0.2,1) infinite;
+  pointer-events: none;
+}
+
+.animate-flash-wave {
+  pointer-events: none;
+}
+
