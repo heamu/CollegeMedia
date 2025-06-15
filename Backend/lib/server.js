@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
