@@ -1,5 +1,5 @@
 import Chats from "../assets/Chat_1.svg"
-import Profile from "../assets/Profile_1.svg"
+import Profile from "../assets/profile_1.svg"
 import Bookmark from "../assets/WhiteBookmark.svg"
 import Question from "../assets/Question.svg"
 import Moderate from "../assets/Moderate.svg"
