@@ -7,7 +7,7 @@ import passport from "passport";
 
 const globalMiddleware = (app) => {
   app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   }));
 
@@ -19,11 +19,12 @@ const globalMiddleware = (app) => {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      httpOnly: true,
-      maxAge: 1000*60*60*24*7, // max 7 day,
-      sameSite: 'lax',
-      secure: false
-    }
+  httpOnly: true,
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure: process.env.NODE_ENV === "production"
+}
+
   }));
 
   app.use(passport.initialize());
@@ -36,4 +37,3 @@ export default globalMiddleware;
 
 // i have generated my SESSION-SECRET using the following command in my nodejs terminal
 //node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-

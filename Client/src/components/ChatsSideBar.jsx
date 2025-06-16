@@ -18,7 +18,8 @@ function ChatsSideBar() {
     chatType, setChatType,
     selectedUser, setSelectedUser,
     getCurrentUsers,
-    isUsersLoading
+    isUsersLoading,
+    commonUnvisited, anonSentUnvisited, anonRecieveUnvisited, clearUnvisitedForType
   } = ChatProvider.useChat();
   const users = getCurrentUsers();
   const navigate = useNavigate();
@@ -27,11 +28,12 @@ function ChatsSideBar() {
   const iconClasses = (type) =>
     `p-1 rounded hover:bg-blue-900 transition-colors ${chatType === type ? 'bg-blue-800' : ''}`;
 
-  // Handler for switching chat type (resets selected user)
+  // Handler for switching chat type (resets selected user and clears unvisited for that type)
   const handleSetChatType = (type) => {
     if (type !== chatType) {
       setSelectedUser(null);
       setChatType(type);
+      clearUnvisitedForType(type);
     }
   };
   
@@ -53,14 +55,29 @@ function ChatsSideBar() {
         <button onClick={() => handleSidebarAction('home')} className="p-3 rounded hover:bg-blue-900" aria-label="Home">
           <img src={HomeIcon} alt="Home" className="w-8 h-8" />
         </button>
-        <button onClick={() => handleSidebarAction('chats')} className="p-3 rounded hover:bg-blue-900" aria-label="Chats">
+        <button onClick={() => handleSidebarAction('chats')} className="p-3 rounded hover:bg-blue-900 relative" aria-label="Chats">
           <img src={ChatsIcon} alt="Chats" className="w-8 h-8" />
+          {commonUnvisited > 0 && (
+            <span className="absolute -top-2 left-7 min-w-[1.1rem] h-5 px-1 bg-green-500 border-2 border-[#0C0C2E] rounded-full flex items-center justify-center text-xs font-bold text-white animate-pulse z-10">
+              {commonUnvisited}
+            </span>
+          )}
         </button>
-        <button onClick={() => handleSidebarAction('anon_received')} className="p-3 rounded hover:bg-blue-900" aria-label="Anonymous Received">
+        <button onClick={() => handleSidebarAction('anon_received')} className="p-3 rounded hover:bg-blue-900 relative" aria-label="Anonymous Received">
           <img src={LinkIcon} alt="Anonymous Received" className="w-8 h-8" />
+          {anonRecieveUnvisited > 0 && (
+            <span className="absolute -top-2 left-7 min-w-[1.1rem] h-5 px-1 bg-green-500 border-2 border-[#0C0C2E] rounded-full flex items-center justify-center text-xs font-bold text-white animate-pulse z-10">
+              {anonRecieveUnvisited}
+            </span>
+          )}
         </button>
-        <button onClick={() => handleSidebarAction('anon_sent')} className="p-3 rounded hover:bg-blue-900" aria-label="Anonymous Sent">
+        <button onClick={() => handleSidebarAction('anon_sent')} className="p-3 rounded hover:bg-blue-900 relative" aria-label="Anonymous Sent">
           <img src={AnonymousIcon} alt="Anonymous Sent" className="w-8 h-8" />
+          {anonSentUnvisited > 0 && (
+            <span className="absolute -top-2 left-7 min-w-[1.1rem] h-5 px-1 bg-green-500 border-2 border-[#0C0C2E] rounded-full flex items-center justify-center text-xs font-bold text-white animate-pulse z-10">
+              {anonSentUnvisited}
+            </span>
+          )}
         </button>
         <button onClick={() => handleSidebarAction('edit')} className="p-3 rounded hover:bg-blue-900" aria-label="Edit">
           <img src={EditIcon} alt="Edit" className="w-8 h-8" />

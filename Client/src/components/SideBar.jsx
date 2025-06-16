@@ -1,14 +1,15 @@
 import Chats from "../assets/Chat_1.svg"
-import Profile from "../assets/Profile_1.svg"
-import Bookmark from "../assets/WhiteBookmark.svg"
+import Profile from "../assets/profile_1.svg"
+import Bookmark from "../assets/WhiteBookMark.svg"
 import Question from "../assets/Question.svg"
 import Moderate from "../assets/Moderate.svg"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/useAuth";
-
+import { ChatProvider } from '../context/chatContext';
 
 function SideBar() {
      const { user } = useAuth();
+     const { totalUnvisited } = ChatProvider.useChat();
     const navigate = useNavigate();
     function handleAskQuestion(){
         navigate('/ask')
@@ -37,11 +38,18 @@ function SideBar() {
             </div>
 
             
-            <div onClick={handleChats} className="flex gap-4 cursor-pointer">
+            <div onClick={handleChats} className="flex gap-4 cursor-pointer relative">
                 <div className="svg">
                     <img src={Chats} alt="" className="w-8 h-8 cursor-pointer " />
                 </div>
-                <div className="svgWork font-bold text-[22px]">Chats</div>
+                <div className="svgWork font-bold text-[22px] flex items-center gap-2">
+                  Chats
+                  {totalUnvisited > 0 && (
+                    <span className="ml-2 min-w-[1.1rem] h-5 px-1 bg-green-500 border-2 border-black rounded-full flex items-center justify-center text-xs font-bold text-white z-10">
+                      {totalUnvisited}
+                    </span>
+                  )}
+                </div>
             </div>
 
             

@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import ChatsSideBar from '../components/ChatsSideBar';
 import ChatWindow from '../components/ChatWindow';
 import axios from '../utils/api';
 import { useAuth } from '../context/useAuth';
 import AnonymousName from '../components/Modals/AnonymousName';
-import { ChatProvider } from '../context/chatContext';
+import ChatContext from '../context/chatContext';
 
 function ChatsPage() {
     const { user } = useAuth();
@@ -19,7 +19,7 @@ function ChatsPage() {
         isUsersLoading, setIsUsersLoading,
         showAnonModal, setShowAnonModal,
         getCurrentUsers
-    } = ChatProvider.useChat();
+    } = useContext(ChatContext);
 
     // Detect websocket disconnects
     useEffect(() => {
@@ -42,7 +42,7 @@ function ChatsPage() {
            // //console.log("hello i am frome the 1st use effect in chatsPage");
             setIsUsersLoading(true);
             try {
-                const res = await axios.get('/messages/all-chat-users');               
+                const res = await axios.get('/messages/all-chat-users');                // Use backend-provided notificationCount for each user
                 setAllUsers({
                     commonUsers: res.data.commonUsers || [],
                     anonymousSentUsers: res.data.anonymousSentUsers || [],

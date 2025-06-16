@@ -9,12 +9,15 @@ import { useRef, useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useAuth } from '../context/useAuth';
 import ErrorModal from './ErrorModal';
+import Upload from './Upload';
 
 function ChatWindow({ chatType, selectedUser, messages, setMessages }) {
   const [input, setInput] = useState("");
   const { user: currentUser } = useAuth();
   const messagesEndRef = useRef(null);
   const [showError, setShowError] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -40,35 +43,43 @@ function ChatWindow({ chatType, selectedUser, messages, setMessages }) {
 
   const user = selectedUser;
 
+  const handleUploadSuccess = (res) => {
+    setImageUrl(res.url);
+    setTimeout(() => setUploadProgress(0), 500); // Delay reset to allow loader to show
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const trimmed = input.trim();
-    if (!trimmed || !selectedUser) return;
+    if ((!trimmed && !imageUrl) || !selectedUser) return;
     // Optimistically add message
     const newMsg = {
       text: trimmed,
+      imageUrl, // for frontend display
+      imageURL: imageUrl, // for backend compatibility
       fromMe: true,
       status: 'sent',
     };
     setMessages((prev) => [...prev, newMsg]);
     setInput("");
+    setImageUrl("");
     try {
       const res = await api.post('/messages/send-message', {
         receiverId: selectedUser._id,
         text: trimmed,
+        imageURL: imageUrl, // backend expects imageURL
         type: (chatType === 'anon_sent') ? 'anon_sent' : (chatType === 'anon_received' || chatType === 'anon_received') ? 'anon_received' : 'common',
       });
       if (res && res.data) {
         const saved = res.data;
         setMessages((prev) => {
-          // Replace the optimistic message with the real one (optional: match by text)
           const idx = prev.findIndex(m => m === newMsg);
           if (idx !== -1) {
             const updated = [...prev];
-            updated[idx] = { ...saved, fromMe: true };
+            updated[idx] = { ...saved, fromMe: true, imageUrl: saved.imageURL };
             return updated;
           }
-          return [...prev, { ...saved, fromMe: true }];
+          return [...prev, { ...saved, fromMe: true, imageUrl: saved.imageURL }];
         });
       }
     } catch {
@@ -76,6 +87,12 @@ function ChatWindow({ chatType, selectedUser, messages, setMessages }) {
     }
   };
   console.log(messages);
+
+  // Cancel upload handler
+  const handleCancelUpload = () => {
+    setImageUrl("");
+    setUploadProgress(0);
+  };
 
   return (
     <>
@@ -134,11 +151,13 @@ function ChatWindow({ chatType, selectedUser, messages, setMessages }) {
               const fromMe = msg.fromMe !== undefined
                 ? msg.fromMe
                 : (msg.senderId === currentUser._id || (msg.senderId && msg.senderId._id === currentUser._id));
+              const hasImage = !!(msg.imageUrl || msg.imageURL);
+              const hasText = !!msg.text;
               return (
                 <div
                   key={idx}
                   className={`w-full flex ${fromMe ? "justify-end" : "justify-start"}`}
-                  style={{overflow: 'visible'}}
+                  style={{ overflow: 'visible' }}
                 >
                   <div
                     className={`rounded-lg px-2 py-1 text-base font-medium break-words shadow-md ${
@@ -153,39 +172,100 @@ function ChatWindow({ chatType, selectedUser, messages, setMessages }) {
                       whiteSpace: 'pre-line',
                       overflowWrap: 'break-word',
                       display: 'flex',
-                      flexDirection: 'row',
+                      flexDirection: 'column',
                       alignItems: 'flex-end',
-                      gap: 4,
+                      gap: hasImage && hasText ? 4 : 4, // less gap if both image and text
+                      padding: hasImage ? '6px 6px 6px 6px' : '8px',
                     }}
                   >
-                    <span style={{flex: 1, minWidth: 0, wordBreak: 'break-word'}}>{msg.text}</span>
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        fontSize: '0.75rem',
-                        color: '#d1d5db',
-                        userSelect: 'none',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                        marginLeft: 4,
-                      }}
-                    >
-                      {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                      {fromMe && (
-                        <>
-                          {msg.status === 'sent' && (
-                            <img src={SingleTick} alt="Sent" style={{width: 16, height: 16, marginLeft: 2, display: 'inline-block'}} />
+                    {/* Image on top, full width, rounded */}
+                    {hasImage && (
+                      <img
+                        src={msg.imageUrl || msg.imageURL}
+                        alt="attachment"
+                        className="w-full max-w-[320px] max-h-[320px] rounded-lg border border-gray-700 object-cover"
+                        style={{ marginBottom: hasText ? 4 : 0, alignSelf: 'center' }}
+                      />
+                    )}
+                    {/* Text and time/tick in a single row below image */}
+                    {hasText && (
+                      <div
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          flexDirection: 'row',
+                          alignItems: 'flex-end',
+                          marginTop: hasImage ? 0 : 0,
+                        }}
+                      >
+                        <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word', marginRight: 6 }}>{msg.text}</span>
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            fontSize: '0.75rem',
+                            color: '#d1d5db',
+                            userSelect: 'none',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            marginLeft: 4,
+                            background: hasImage ? 'rgba(0,0,0,0.15)' : 'none',
+                            borderRadius: 6,
+                            padding: hasImage ? '0 4px' : 0,
+                          }}
+                        >
+                          {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                          {fromMe && (
+                            <>
+                              {msg.status === 'sent' && (
+                                <img src={SingleTick} alt="Sent" style={{ width: 16, height: 16, marginLeft: 2, display: 'inline-block' }} />
+                              )}
+                              {msg.status === 'delivered' && (
+                                <img src={DoubleTick} alt="Delivered" style={{ width: 16, height: 16, marginLeft: 2, display: 'inline-block' }} />
+                              )}
+                              {msg.status === 'read' && (
+                                <img src={DoubleGreenTick} alt="read" style={{ width: 16, height: 16, marginLeft: 2, display: 'inline-block' }} />
+                              )}
+                            </>
                           )}
-                          {msg.status === 'delivered' && (
-                            <img src={DoubleTick} alt="Delivered" style={{width: 16, height: 16, marginLeft: 2, display: 'inline-block'}} />
-                          )}
-                          {msg.status === 'read' && (
-                            <img src={DoubleGreenTick} alt="read" style={{width: 16, height: 16, marginLeft: 2, display: 'inline-block'}} />
-                          )}
-                        </>
-                      )}
-                    </span>
+                        </span>
+                      </div>
+                    )}
+                    {/* If only image, show time/tick below image */}
+                    {!hasText && hasImage && (
+                      <span
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          fontSize: '0.75rem',
+                          color: '#d1d5db',
+                          userSelect: 'none',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          marginLeft: 4,
+                          background: 'rgba(0,0,0,0.15)',
+                          borderRadius: 6,
+                          padding: '0 4px',
+                          marginTop: 2,
+                          alignSelf: 'flex-end',
+                        }}
+                      >
+                        {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                        {fromMe && (
+                          <>
+                            {msg.status === 'sent' && (
+                              <img src={SingleTick} alt="Sent" style={{ width: 16, height: 16, marginLeft: 2, display: 'inline-block' }} />
+                            )}
+                            {msg.status === 'delivered' && (
+                              <img src={DoubleTick} alt="Delivered" style={{ width: 16, height: 16, marginLeft: 2, display: 'inline-block' }} />
+                            )}
+                            {msg.status === 'read' && (
+                              <img src={DoubleGreenTick} alt="read" style={{ width: 16, height: 16, marginLeft: 2, display: 'inline-block' }} />
+                            )}
+                          </>
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -195,12 +275,44 @@ function ChatWindow({ chatType, selectedUser, messages, setMessages }) {
         </div>
         {/* Message input */}
         <form className="flex items-center gap-3 px-6 py-4 border-t border-blue-900  bg-[#000000] rounded-b-xl" onSubmit={handleSendMessage}>
-          <button
-            type="button"
-            className="p-2 rounded hover:bg-blue-900 transition-colors"
-          >
-            <img src={AttatchIcon} alt="Attach" className="w-5 h-5" />
-          </button>
+          <Upload type="image" setData={handleUploadSuccess} setProgress={setUploadProgress}>
+            <button
+              type="button"
+              className="p-2 rounded hover:bg-blue-900 transition-colors"
+            >
+              <img src={AttatchIcon} alt="Attach" className="w-5 h-5" />
+            </button>
+          </Upload>
+          {(uploadProgress > 0 && uploadProgress < 100) && (
+            <div className="w-12 h-12 flex items-center justify-center mr-2 relative">
+              <svg className="animate-spin h-8 w-8 text-blue-400" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+              <span className="ml-2 text-blue-300 text-xs font-semibold">{uploadProgress}%</span>
+              <button
+                type="button"
+                className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-red-700 transition"
+                onClick={handleCancelUpload}
+                title="Cancel upload"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          {imageUrl && uploadProgress === 0 && (
+            <div className="relative w-12 h-12 mr-2">
+              <img src={imageUrl} alt="preview" className="w-12 h-12 object-cover rounded-lg border border-blue-400" />
+              <button
+                type="button"
+                className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-red-700 transition"
+                onClick={handleCancelUpload}
+                title="Remove image"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <input
             type="text"
             className="flex-1 px-4 py-2 rounded-full bg-[#23244a] text-white border border-gray-700 focus:outline-none focus:border-blue-500"
@@ -212,8 +324,7 @@ function ChatWindow({ chatType, selectedUser, messages, setMessages }) {
             onClick={handleSendMessage}
             type="submit"
             className="text-blue-600 px-6 py-2 rounded-full font-semibold transition-colors hover:bg-white/60 hover:text-blue-600"
-            style={{background: 'transparent', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}
-          >
+            style={{background: 'transparent', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}>
             <img src={SendIcon} alt="Send" className="w-6 h-6" />
           </button>
         </form>

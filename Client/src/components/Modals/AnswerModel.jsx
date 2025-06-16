@@ -5,6 +5,9 @@ import Comments from "../Comments";
 import Image from "../Image"; // Adjust the import based on your file structure
 import axios from "axios";
 import { useAuth } from "../../context/useAuth";
+import CommentSVG from "../../assets/Comment.svg";
+import LikeSVG from "../../assets/Like.svg";
+import InvertedLikeSVG from "../../assets/InvertedLike.svg";
 
 const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -139,13 +142,13 @@ function AnswerModel() {
           <div className="flex gap-3">
             <div className="flex gap-2">
               <button className="text-gray-400" onClick={() => { setshowComments(!showComments) }}>
-                <img src="../src/assets/Comment.svg" alt="Comment" className="w-5 h-5 cursor-pointer" />
+                <img src={CommentSVG} alt="Comment" className="w-5 h-5 cursor-pointer" />
               </button>
               <div className="noofcomments text-gray-400 text-sm">{comments.length}</div>
             </div>
             {/* Upvote like PostActions */}
             <div className="Like flex gap-1 justify-around items-center cursor-pointer" onClick={handleLike}>
-              <img src={userUpvoted ? "/src/assets/InvertedLike.svg" : "/src/assets/Like.svg"} alt="LikeSVG" className="w-5 h-5" />
+              <img src={userUpvoted ? InvertedLikeSVG : LikeSVG} alt="LikeSVG" className="w-5 h-5" />
               {upvotes > 0 && (
                 <div className="text-xs text-gray-400">{upvotes}</div>
               )}

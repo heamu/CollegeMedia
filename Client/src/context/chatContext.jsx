@@ -17,6 +17,12 @@ export function ChatProvider({ children }) {
   const [showAnonModal, setShowAnonModal] = useState(false);
   const { socket, user } = useContext(AuthContext);
 
+  // --- Unvisited Notification State ---
+  const [commonUnvisited, setCommonUnvisited] = useState(0);
+  const [anonSentUnvisited, setAnonSentUnvisited] = useState(0);
+  const [anonRecieveUnvisited, setAnonRecieveUnvisited] = useState(0);
+  const [totalUnvisited, setTotalUnvisited] = useState(0);
+
   // WebSocket event handlers
   useEffect(() => {
     if (!socket || !user) return;
@@ -180,6 +186,51 @@ export function ChatProvider({ children }) {
     return type;
   };
 
+  // Helper to update all unvisited counts
+  const updateTotalUnvisited = (c, aS, aR) => {
+    setCommonUnvisited(c);
+    setAnonSentUnvisited(aS);
+    setAnonRecieveUnvisited(aR);
+    setTotalUnvisited(c + aS + aR);
+  };
+
+  // When fetching users (e.g. in fetchAllUsers in ChatsPage), update unvisited counts
+  useEffect(() => {
+    const c = allUsers.commonUsers.reduce((sum, u) => sum + (u.notificationCount || 0), 0);
+    const aS = allUsers.anonymousSentUsers.reduce((sum, u) => sum + (u.notificationCount || 0), 0);
+    const aR = allUsers.anonymousReceivedUsers.reduce((sum, u) => sum + (u.notificationCount || 0), 0);
+    updateTotalUnvisited(c, aS, aR);
+  }, [allUsers]);
+
+  // On receiveMessage, increment unvisited for the correct type if not currently viewing that type
+  useEffect(() => {
+    if (!socket || !user) return;
+    const handleReceiveMessageUnvisited = (msg) => {
+      const type = normalizeChatType(msg.type);
+      if (type === 'common' && chatType !== 'common') {
+        setCommonUnvisited((prev) => { const v = (prev || 0) + 1; setTotalUnvisited(v + anonSentUnvisited + anonRecieveUnvisited); return v; });
+      } else if (type === 'anon_sent' && chatType !== 'anon_sent') {
+        setAnonSentUnvisited((prev) => { const v = (prev || 0) + 1; setTotalUnvisited(commonUnvisited + v + anonRecieveUnvisited); return v; });
+      } else if (type === 'anon_received' && chatType !== 'anon_received') {
+        setAnonRecieveUnvisited((prev) => { const v = (prev || 0) + 1; setTotalUnvisited(commonUnvisited + anonSentUnvisited + v); return v; });
+      }
+    };
+    socket.on('receiveMessage', handleReceiveMessageUnvisited);
+    return () => { socket.off('receiveMessage', handleReceiveMessageUnvisited); };
+  }, [socket, user, chatType, commonUnvisited, anonSentUnvisited, anonRecieveUnvisited]);
+
+  // When switching to a chat type, clear its unvisited count
+  const clearUnvisitedForType = (type) => {
+    if (type === 'common') setCommonUnvisited(0);
+    if (type === 'anon_sent') setAnonSentUnvisited(0);
+    if (type === 'anon_received') setAnonRecieveUnvisited(0);
+    setTotalUnvisited(
+      (type === 'common' ? 0 : commonUnvisited) +
+      (type === 'anon_sent' ? 0 : anonSentUnvisited) +
+      (type === 'anon_received' ? 0 : anonRecieveUnvisited)
+    );
+  };
+
   const value = {
     chatType, setChatType,
     selectedUser, setSelectedUser,
@@ -188,7 +239,8 @@ export function ChatProvider({ children }) {
     isUsersLoading, setIsUsersLoading,
     showAnonModal, setShowAnonModal,
     getCurrentUsers,
-    addUserToChatList
+    addUserToChatList,
+    commonUnvisited, anonSentUnvisited, anonRecieveUnvisited, totalUnvisited, clearUnvisitedForType
   };
 
   return (
